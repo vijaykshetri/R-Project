@@ -1,0 +1,353 @@
+---
+title: "Vijay's Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation : rows
+    vertical_layout: fill
+    social : ["twitter","facebook","menu"]
+    source_code: embed
+  
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(knitr)
+library(DT)
+library(rpivotTable)
+library(ggplot2)
+library(plotly)
+library(dplyr)
+library(openintro)
+library(highcharter)
+library(ggvis)
+```
+
+
+```{r }
+data<-read.csv("c:/Users/Vijay/Desktop/POM-681/Data/airline.csv")
+data<- data %>% filter(! is.na(DepDelay), ! is.na(DepDelayMinutes))
+data1<- data %>% filter(!is.na(ArrDelay))
+```
+
+
+```{r }
+mycolors<-c("blue","#ffc125","darkgreen","darkorange")
+```
+
+
+Interactive Data visualization
+===============================================================================================================
+
+Row
+---------------------------------------------------------------------------------------------------------------
+
+###  flight Delay Analysis
+
+```{r }
+valueBox(paste("Delay"),
+         color="warning")
+
+```
+
+
+### Flight Delay in US
+
+```{r }
+valueBox(length(data$OriginState),
+         icon = "fa-user")
+
+```
+
+### **Departure Delay**
+
+```{r }
+gauge(round(mean(data$DepDelay),
+          digits=2),
+      min =  0,
+      max= 60,
+      gaugeSectors(success = c(0,15),
+                   warning = c(15,30),
+                   danger = c(30,60),
+                   colors = c("green","yellow","red")))
+
+```
+
+### Massachusetts
+
+```{r }
+valueBox(mean(data$DepDelayMinutes[data$DestState == "MA"]),
+         icon = 'fa-buiding')
+```
+
+### New Hampshire
+
+```{r}
+valueBox(mean(data$DepDelayMinutes[data$DestState == "NH"]),
+
+         icon = 'fa-buiding')
+```
+
+### Texas
+
+```{r}
+valueBox(mean(data$DepDelayMinutes[data$DestState == "TX"]),
+         icon = 'fa-buiding')
+```
+
+### Rhode Island
+
+```{r}
+valueBox(mean(data$DepDelayMinutes[data$DestState == "RI"]),
+         icon = 'fa-buiding')
+```
+
+Row
+---------------------------------------------------------------------
+
+### Departure Delay By Origin State
+
+```{r}
+p1 <- data %>%
+  group_by(OriginState) %>%
+  summarise(DepDelay =n()) %>%
+  plot_ly (x = ~ OriginState,
+          y = ~ DepDelay,
+          color ="blue",
+          type = 'bar') %>%
+layout(xaxis = list(title = "Departure Delay by Origin State"),
+yaxis = list(title = 'Count'))
+p1
+  
+```
+### Top States Arrival Delay
+
+```{r}
+p2 <- data1 %>%
+  group_by(DestState) %>%
+  summarise(ArrDelay =n()) %>%
+  filter(ArrDelay>1000) %>%
+  plot_ly (labels = ~ DestState,
+          values = ~ ArrDelay,
+          marker = list(color = mycolors)) %>%
+  add_pie(hole = 0.3) %>%
+  layout(xaxis = list(zeroline = F,
+                      showline = F,
+                      showticklabels = F,
+                      showgrid = F),
+         yaxis = list(zeroline = F,
+                      showline = F,
+                      showticklabels=F,
+                      showgrid=F))
+p2
+```
+### Day of Month vs Departure Delay
+
+```{r}
+p3 <- plot_ly(data,
+               x = ~DayofMonth,
+               y = ~DepDelay,
+               text = paste("DayofMonth", data$DayofMonth,
+                            "DepDelay", 
+                            data$DepDelay),
+                            type = "bar")%>%
+                 layout(xaxis = list(title ="DayofMonth "),
+                      yaxis = list(Title = "DepDelay"))
+p3
+```
+
+Row
+-----------------------------------------------------------------------------------------------------------
+
+### Scatter plot Day of Week Vs Arrival Delay
+```{r}
+p4 <- plot_ly(data1, x=~ DayOfWeek) %>%
+  add_markers(y = ~ ArrDelay,
+              text = ~paste("ArrDelay:",ArrDelay),
+              showlegend = F)%>%
+  add_lines(y= ~ fitted (loess(ArrDelay ~ DayOfWeek)),
+            name = "Loess Smoother",
+            color = I("#FFC125"),
+            showlegend = T,
+            Line = list(width=5)) %>%
+  layout(xaxis = list(title = " Day of week"),
+         yaxis = list(title = "Arrival Delay"))
+p4
+```
+
+###  Arrival Delay Vs Unique Carrier
+
+```{r}
+
+plot_ly(data1, x = data1$UniqueCarrier, y= data1$ArrDelay, text = paste("Destination State:", data1$DestState), mode = "markers", color = data1$DestState) %>%
+  layout(title = ' Arrival delay Vs Unique Carrier',
+         xaxis = list(title = 'Unique Carrier',
+                      zeroline = TRUE),
+         yaxis = list(title = 'Arrival delay (mins)'))
+
+```
+
+
+Map
+=====================================================================================
+
+### Map
+```{r}
+air <- data %>%
+  group_by(OriginStateName)%>%
+  summarize(total = n())
+OriginStateName <- abbr2state(air$OriginStateName)
+
+highchart() %>%
+  hc_title(text = "Origin state in US") %>%
+  hc_subtitle(text = "Source: airline.csv") %>%
+  hc_add_series_map(usgeojson, air,
+                    name = "Origin airport",
+                    value = "total",
+                    joinBy = c("woename", "OriginStateName")) %>%
+  hc_mapNavigation(enabled = T)
+
+
+```
+
+Data Table
+====================================================================================
+
+```{r}
+datatable(data,
+          caption = "Delay Data",
+          rownames = T,
+          filter = "top",
+          options = list(pageLength = 25))
+
+```
+
+Interactive Pivot table
+=====================================================================================================================
+
+
+```{r}
+rpivotTable(data,aggregatorName = "Count",
+            cols="ArrDelay",
+            rows="OriginState",
+            rendererName = "Heatmap")
+
+```
+
+Summary {data-orientation=columns}
+=============================================================================================================
+
+
+column
+------------------------------------------------------------------------------------------------------------
+
+### Max Arrival Delay 
+
+```{r}
+valueBox(max(data1$ArrDelay),
+         icon="fa-user")
+
+```
+
+### Average Arrival delay
+
+```{r}
+
+valueBox(round(mean(data1$ArrDelay),
+               digits = 2),
+         icon="fa-area-chart")
+
+```
+
+### Average Departure delay
+
+```{r}
+
+valueBox(round(mean(data$DepDelay),
+               digits = 2),
+         icon="fa-area-chart")
+
+```
+
+### Average Carrier Delay
+```{r}
+data<- data %>% filter(! is.na(CarrierDelay))
+valueBox(round(mean(data$CarrierDelay),
+               digits = 2),
+         icon="fa-area-chart")
+
+```
+
+### Average Weather Delay
+```{r}
+data<- data %>% filter(! is.na(WeatherDelay))
+valueBox(round(mean(data$WeatherDelay),
+               digits = 2),
+         icon="fa-area-chart")
+
+```
+
+### Average NASDelay
+
+```{r}
+data<- data %>% filter(! is.na(NASDelay))
+valueBox(round(mean(data$NASDelay),
+               digits = 2),
+         icon="fa-area-chart")
+
+```
+
+### Average Securuty Delay
+
+```{r}
+data<- data %>% filter(! is.na(SecurityDelay))
+valueBox(round(mean(data$SecurityDelay),
+               digits = 2),
+         icon="fa-area-chart")
+
+```
+
+### Average Late Aircraft Delay
+
+```{r}
+data<- data %>% filter(! is.na(LateAircraftDelay))
+valueBox(round(mean(data$LateAircraftDelay),
+               digits = 2),
+         icon="fa-area-chart")
+
+```
+
+Column
+------------------------------------------------------------------------------------------------------------------
+
+Report
+
+* This is a report on `r length(data1$ArrDelay)` airline Delay.
+
+* The average Arrival Delay was `r mean(data1$ArrDelay)`.
+
+* The average  Carrier Delay was `r mean(data$CarrierDelay)`.
+
+* The  average weather Delay was `r mean(data$WeatherDelay)`.
+
+* The average NAS Delay was `r mean(data$NASDelay)`.
+
+* The average Security Delay was `r mean(data$SecurityDelay)`.
+
+* The average Late aircraft Delay was `r mean(data$LateAircraftDelay)`.
+
+This report was generated on `r format(Sys.Date(), format = "%B %d, %Y")`.
+
+About Report
+===================================================================================================================
+
+Work : Project-1, POM-681
+
+Topic : Development of Dashboard
+
+Data : airline.csv
+
+Created by : Vijay Kumar Singh Kshetri
+
+Confidential: HIGHLY!
+
+
