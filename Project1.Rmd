@@ -24,7 +24,7 @@ library(ggvis)
 
 
 ```{r }
-data<-read.csv("c:/Users/Vijay/Desktop/POM-681/Data/airline.csv")
+data<-read.csv("c:/Users/Vijay/Desktop/Data/airline.csv")
 data<- data %>% filter(! is.na(DepDelay), ! is.na(DepDelayMinutes))
 data1<- data %>% filter(!is.na(ArrDelay))
 ```
@@ -340,13 +340,13 @@ This report was generated on `r format(Sys.Date(), format = "%B %d, %Y")`.
 About Report
 ===================================================================================================================
 
-Work : Project-1, POM-681
+Work : Project-1
 
 Topic : Development of Dashboard
 
 Data : airline.csv
 
-Created by : Vijay Kumar Singh Kshetri
+Created by : Vijay Kshetri
 
 Confidential: HIGHLY!
 
